@@ -1,0 +1,11 @@
+# Old GitHub Spark build — kept locally as archive, not part of this repo
+dog-care-tracker/
+
+# Python
+app/credentials.json
+app/.env
+app/__pycache__/
+app/venv/
+app/.venv/
+**/*.pyc
+.DS_Store

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Beau Care">
+<meta name="theme-color" content="#f3ead8">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Beau Care Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --background: oklch(0.95 0.02 85);
+    --foreground: oklch(0.30 0.02 35);
+    --card: oklch(0.98 0.01 85);
+    --card-foreground: oklch(0.30 0.02 35);
+    --primary: oklch(0.62 0.14 35);
+    --primary-foreground: oklch(0.98 0.01 85);
+    --secondary: oklch(0.88 0.04 85);
+    --secondary-foreground: oklch(0.30 0.02 35);
+    --muted: oklch(0.92 0.02 85);
+    --muted-foreground: oklch(0.55 0.02 35);
+    --border: oklch(0.85 0.03 85);
+    --accent: oklch(0.70 0.17 25);
+    --accent-foreground: oklch(0.98 0.01 85);
+    --destructive: oklch(0.577 0.245 27.325);
+    --apoquel: oklch(0.72 0.08 145);
+    --bath: oklch(0.65 0.20 250);
+    --comment: oklch(0.75 0.18 50);
+    --radius: 0.75rem;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Outfit', system-ui, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 760px; margin: 0 auto; padding: 1.25rem 1rem 5rem; }
+
+  /* ── Header ── */
+  .app-title {
+    font-size: 2rem; font-weight: 600; letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;
+  }
+  .app-title .paw { color: var(--primary); }
+  .app-sub { color: var(--muted-foreground); font-size: 0.9rem; margin-bottom: 1.25rem; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+  .tab {
+    flex: 1; padding: 0.6rem; border: none; border-radius: var(--radius);
+    background: var(--secondary); color: var(--secondary-foreground);
+    font-family: inherit; font-size: 0.95rem; font-weight: 500; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tab.active { background: var(--primary); color: var(--primary-foreground); }
+
+  /* ── Calendar controls ── */
+  .cal-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+  .view-toggle { display: flex; gap: 0.4rem; }
+  .view-toggle button {
+    padding: 0.4rem 0.8rem; border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.66);
+    background: var(--card); color: var(--card-foreground); font-family: inherit;
+    font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .view-toggle button.active { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+
+  .nav-row { display: flex; align-items: center; justify-content: space-between; margin: 0.75rem 0; }
+  .nav-row h2 { font-size: 1.35rem; font-weight: 600; text-align: center; flex: 1; }
+  .icon-btn {
+    width: 2.5rem; height: 2.5rem; border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.66);
+    background: var(--card); color: var(--card-foreground); font-size: 1.2rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .icon-btn:active { transform: scale(0.94); }
+  .today-btn {
+    display: block; margin: 0 auto 0.75rem; padding: 0.45rem 1.4rem;
+    border: none; border-radius: calc(var(--radius) * 0.66);
+    background: var(--secondary); color: var(--secondary-foreground);
+    font-family: inherit; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.15s;
+  }
+
+  /* ── Calendar grid ── */
+  .weekday-row, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
+  .weekday-row { margin-bottom: 0.5rem; }
+  .weekday {
+    text-align: center; font-size: 0.72rem; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted-foreground); padding: 0.2rem 0;
+  }
+
+  .day {
+    position: relative; min-height: 80px; padding: 0.6rem 0.5rem; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--border); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .day:hover { transform: scale(1.03); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: var(--primary); }
+  .day:active { transform: scale(0.98); }
+  .day.other-month { opacity: 0.4; }
+  .day.future { opacity: 0.55; cursor: not-allowed; }
+  .day.future:hover { transform: none; box-shadow: none; border-color: var(--border); }
+  .day.today { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 6px 16px oklch(0.70 0.17 25 / 0.2); }
+  .day.today .day-num { color: var(--accent); font-weight: 600; }
+  .day-num { font-size: 0.95rem; font-weight: 500; }
+  .dots { display: flex; flex-direction: column; gap: 0.35rem; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 9999px; }
+  .dot.apoquel { background: var(--apoquel); }
+  .dot.bath { background: var(--bath); }
+  .dot.comment { background: var(--comment); }
+
+  /* Week view sizing */
+  .cal-grid.week .day { min-height: 110px; padding: 0.9rem 0.5rem; }
+  .cal-grid.week .day-num { font-size: 1.3rem; }
+  .cal-grid.week .dots { flex-direction: row; }
+  .cal-grid.week .dot { width: 11px; height: 11px; }
+
+  /* ── Legend ── */
+  .legend { display: flex; justify-content: center; gap: 1.25rem; margin-top: 1.25rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--muted-foreground); }
+
+  /* ── Dialog ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none;
+    align-items: flex-end; justify-content: center; z-index: 50; padding: 0;
+  }
+  .overlay.open { display: flex; }
+  .dialog {
+    background: var(--card); width: 100%; max-width: 480px; border-radius: var(--radius) var(--radius) 0 0;
+    padding: 1.5rem 1.25rem 2rem; animation: slideUp 0.25s ease;
+  }
+  @media (min-width: 520px) { .overlay { align-items: center; } .dialog { border-radius: var(--radius); } }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
+  .dialog h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.1rem; }
+  .future-msg { color: var(--muted-foreground); font-size: 0.95rem; padding: 0.5rem 0 1rem; }
+  .toggle-btn {
+    width: 100%; height: 76px; border: 2px solid var(--border); border-radius: var(--radius);
+    background: var(--card); color: var(--card-foreground); font-family: inherit; font-size: 1.05rem;
+    font-weight: 600; cursor: pointer; margin-bottom: 0.75rem; display: flex; align-items: center;
+    justify-content: center; gap: 0.6rem; transition: all 0.2s ease;
+  }
+  .toggle-btn .ico { font-size: 1.4rem; }
+  .toggle-btn.apoquel.on { background: var(--apoquel); color: white; border-color: var(--apoquel); animation: pop 0.3s ease; }
+  .toggle-btn.bath.on { background: var(--bath); color: white; border-color: var(--bath); animation: pop 0.3s ease; }
+  @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  .notes-label { display: block; font-size: 0.85rem; font-weight: 500; margin: 0.75rem 0 0.4rem; color: var(--muted-foreground); }
+  textarea {
+    width: 100%; min-height: 90px; padding: 0.75rem; border: 1px solid var(--border);
+    border-radius: var(--radius); font-family: inherit; font-size: 0.95rem; resize: vertical;
+    background: var(--background); color: var(--foreground);
+  }
+  textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .dialog-actions { display: flex; gap: 0.6rem; margin-top: 1.25rem; }
+  .btn {
+    flex: 1; padding: 0.75rem; border: none; border-radius: var(--radius); font-family: inherit;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: var(--primary-foreground); }
+  .btn-ghost { background: var(--secondary); color: var(--secondary-foreground); }
+  .btn:active { transform: scale(0.98); }
+
+  /* ── Analytics ── */
+  .stat-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; }
+  .stat-card .ico { font-size: 1.4rem; }
+  .stat-card .num { font-size: 2rem; font-weight: 700; margin: 0.25rem 0; }
+  .stat-card .label { font-size: 0.85rem; color: var(--muted-foreground); }
+  .stat-card.apoquel .num { color: var(--apoquel); }
+  .stat-card.bath .num { color: var(--bath); }
+  .section-title { font-size: 1.1rem; font-weight: 600; margin: 1.25rem 0 0.75rem; }
+  .month-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.66);
+    padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+  }
+  .month-row .m-name { font-weight: 500; }
+  .month-row .m-stats { display: flex; gap: 1rem; font-size: 0.9rem; }
+  .month-row .m-apoquel { color: var(--apoquel); }
+  .month-row .m-bath { color: var(--bath); }
+  .export-btn {
+    display: block; width: 100%; margin-top: 1.5rem; padding: 0.8rem;
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--card);
+    color: var(--card-foreground); font-family: inherit; font-weight: 500; cursor: pointer;
+  }
+
+  /* ── PIN screen ── */
+  .pin-screen {
+    position: fixed; inset: 0; background: var(--background); display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 1rem; z-index: 100; padding: 1.5rem;
+  }
+  .pin-screen.open { display: flex; }
+  .pin-screen h1 { font-size: 1.6rem; font-weight: 600; }
+  .pin-screen .paw { color: var(--primary); }
+  .pin-input {
+    width: 200px; padding: 0.85rem; text-align: center; font-size: 1.5rem; letter-spacing: 0.3em;
+    border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit;
+    background: var(--card); color: var(--foreground);
+  }
+  .pin-input:focus { outline: 2px solid var(--primary); }
+  .pin-err { color: var(--destructive); font-size: 0.9rem; min-height: 1.2rem; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- PIN gate -->
+<div class="pin-screen" id="pinScreen">
+  <h1><span class="paw">🐾</span> Beau Care</h1>
+  <input class="pin-input" id="pinInput" type="tel" inputmode="numeric" placeholder="••••" maxlength="8" autocomplete="off">
+  <div class="pin-err" id="pinErr"></div>
+  <button class="btn btn-primary" style="max-width:200px" onclick="submitPin()">Unlock</button>
+</div>
+
+<div class="app" id="app">
+  <div class="app-title"><span class="paw">🐾</span> Beau Care</div>
+  <div class="app-sub">Daily Apoquel &amp; bath log</div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabCalendar" onclick="showTab('calendar')">Calendar</button>
+    <button class="tab" id="tabAnalytics" onclick="showTab('analytics')">Analytics</button>
+  </div>
+
+  <!-- Calendar view -->
+  <div id="calendarView">
+    <div class="cal-controls">
+      <div class="view-toggle">
+        <button id="viewMonth" class="active" onclick="setView('month')">Month</button>
+        <button id="viewWeek" onclick="setView('week')">Week</button>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="icon-btn" onclick="navigate(-1)">‹</button>
+      <h2 id="periodLabel"></h2>
+      <button class="icon-btn" onclick="navigate(1)">›</button>
+    </div>
+    <button class="today-btn" onclick="goToday()">Today</button>
+
+    <div class="weekday-row" id="weekdayRow"></div>
+    <div class="cal-grid" id="calGrid"></div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="dot apoquel"></span> Apoquel</div>
+      <div class="legend-item"><span class="dot bath"></span> Bath</div>
+      <div class="legend-item"><span class="dot comment"></span> Notes</div>
+    </div>
+  </div>
+
+  <!-- Analytics view -->
+  <div id="analyticsView" class="hidden">
+    <div class="stat-cards">
+      <div class="stat-card apoquel">
+        <div class="ico">💊</div>
+        <div class="num" id="totalApoquel">0</div>
+        <div class="label">Apoquel doses · all time</div>
+      </div>
+      <div class="stat-card bath">
+        <div class="ico">🛁</div>
+        <div class="num" id="totalBaths">0</div>
+        <div class="label">Baths · all time</div>
+      </div>
+    </div>
+    <div class="section-title">Monthly breakdown</div>
+    <div id="monthlyBreakdown"></div>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export all data as CSV</button>
+  </div>
+</div>
+
+<!-- Quick-log dialog -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeDialog()">
+  <div class="dialog">
+    <h3 id="dialogDate"></h3>
+    <div id="dialogFutureMsg" class="future-msg hidden">Can't log activities for future dates.</div>
+    <div id="dialogForm">
+      <button class="toggle-btn apoquel" id="toggleApoquel" onclick="toggleActivity('apoquel')">
+        <span class="ico">🐾</span> Apoquel
+      </button>
+      <button class="toggle-btn bath" id="toggleBath" onclick="toggleActivity('bath')">
+        <span class="ico">🛁</span> Bath
+      </button>
+      <label class="notes-label" for="notesField">Notes for the day</label>
+      <textarea id="notesField" placeholder="Add any notes or comments..."></textarea>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" onclick="closeDialog()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDay()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let activities = {};          // { "YYYY-MM-DD": {apoquel, bath, comment} }
+let currentDate = new Date(); // anchor for the viewed month/week
+let viewMode = 'month';
+let selectedKey = null;
+let draft = { apoquel: false, bath: false, comment: '' };
+
+const WEEKDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ── Date utils (ported from date-utils.ts, Monday-start) ──
+function pad(n){ return String(n).padStart(2,'0'); }
+function formatDateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function localIsoDate(d){ return formatDateKey(d || new Date()); }
+function isSameDay(a,b){ return formatDateKey(a)===formatDateKey(b); }
+function startOfWeek(d){ const x=new Date(d); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); x.setHours(0,0,0,0); return x; }
+function addMonths(d,n){ const x=new Date(d); x.setMonth(x.getMonth()+n); return x; }
+function addWeeks(d,n){ const x=new Date(d); x.setDate(x.getDate()+n*7); return x; }
+function getWeekDays(d){ const s=startOfWeek(d); return Array.from({length:7},(_,i)=>{const x=new Date(s);x.setDate(s.getDate()+i);return x;}); }
+function getDaysInMonth(d){
+  const first=new Date(d.getFullYear(),d.getMonth(),1);
+  const start=startOfWeek(first);
+  return Array.from({length:42},(_,i)=>{const x=new Date(start);x.setDate(start.getDate()+i);return x;});
+}
+function formatMonthYear(d){ return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function formatWeekRange(d){
+  const days=getWeekDays(d); const a=days[0], b=days[6];
+  const mo=m=>MONTHS[m].slice(0,3);
+  const left=`${mo(a.getMonth())} ${a.getDate()}`;
+  const right=a.getMonth()===b.getMonth()?`${b.getDate()}`:`${mo(b.getMonth())} ${b.getDate()}`;
+  return `${left} – ${right}, ${b.getFullYear()}`;
+}
+
+// ── Auth ──
+async function init(){
+  const me = await fetch('/api/me').then(r=>r.json());
+  if (me.pin_required && !me.authenticated){
+    document.getElementById('pinScreen').classList.add('open');
+    document.getElementById('pinInput').focus();
+  } else {
+    await loadData();
+  }
+}
+async function submitPin(){
+  const pin = document.getElementById('pinInput').value.trim();
+  const res = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});
+  if (res.ok){
+    document.getElementById('pinScreen').classList.remove('open');
+    await loadData();
+  } else {
+    document.getElementById('pinErr').textContent = 'Wrong PIN';
+    document.getElementById('pinInput').value='';
+  }
+}
+document.getElementById('pinInput').addEventListener('keydown',e=>{ if(e.key==='Enter') submitPin(); });
+
+async function loadData(){
+  activities = await fetch('/api/activities').then(r=>r.json());
+  render();
+  renderAnalytics();
+}
+
+// ── Rendering ──
+function setView(mode){
+  viewMode = mode;
+  document.getElementById('viewMonth').classList.toggle('active', mode==='month');
+  document.getElementById('viewWeek').classList.toggle('active', mode==='week');
+  render();
+}
+function navigate(dir){
+  currentDate = viewMode==='month' ? addMonths(currentDate,dir) : addWeeks(currentDate,dir);
+  render();
+}
+function goToday(){ currentDate = new Date(); render(); }
+
+function render(){
+  document.getElementById('periodLabel').textContent =
+    viewMode==='month' ? formatMonthYear(currentDate) : formatWeekRange(currentDate);
+
+  const wr = document.getElementById('weekdayRow');
+  wr.innerHTML = WEEKDAYS.map(w=>`<div class="weekday">${w}</div>`).join('');
+
+  const grid = document.getElementById('calGrid');
+  grid.className = 'cal-grid' + (viewMode==='week'?' week':'');
+  const days = viewMode==='month' ? getDaysInMonth(currentDate) : getWeekDays(currentDate);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  grid.innerHTML = days.map(d=>{
+    const key = formatDateKey(d);
+    const a = activities[key] || {};
+    const otherMonth = viewMode==='month' && d.getMonth()!==currentDate.getMonth();
+    const isToday = isSameDay(d, today);
+    const isFuture = d > today;
+    const cls = ['day'];
+    if (otherMonth) cls.push('other-month');
+    if (isToday) cls.push('today');
+    if (isFuture) cls.push('future');
+    const dots = [];
+    if (a.apoquel) dots.push('<span class="dot apoquel"></span>');
+    if (a.bath) dots.push('<span class="dot bath"></span>');
+    if (a.comment && a.comment.trim()) dots.push('<span class="dot comment"></span>');
+    return `<div class="${cls.join(' ')}" data-key="${key}" ${isFuture?'':'onclick="openDialog(\''+key+'\')"'}>
+      <span class="day-num">${d.getDate()}</span>
+      <div class="dots">${dots.join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Dialog ──
+function openDialog(key){
+  selectedKey = key;
+  const a = activities[key] || {apoquel:false, bath:false, comment:''};
+  draft = { apoquel: !!a.apoquel, bath: !!a.bath, comment: a.comment || '' };
+
+  const [y,m,dd] = key.split('-').map(Number);
+  const d = new Date(y, m-1, dd);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yest = new Date(today); yest.setDate(today.getDate()-1);
+  let label;
+  if (isSameDay(d,today)) label='Today';
+  else if (isSameDay(d,yest)) label='Yesterday';
+  else {
+    const wd=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+    label = `${wd}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+    if (d.getFullYear()!==today.getFullYear()) label += `, ${d.getFullYear()}`;
+  }
+  document.getElementById('dialogDate').textContent = label;
+
+  document.getElementById('notesField').value = draft.comment;
+  syncToggles();
+  document.getElementById('overlay').classList.add('open');
+}
+function toggleActivity(kind){ draft[kind] = !draft[kind]; syncToggles(); }
+function syncToggles(){
+  document.getElementById('toggleApoquel').classList.toggle('on', draft.apoquel);
+  document.getElementById('toggleBath').classList.toggle('on', draft.bath);
+}
+function closeDialog(){ document.getElementById('overlay').classList.remove('open'); selectedKey=null; }
+
+async function saveDay(){
+  if (!selectedKey) return;
+  draft.comment = document.getElementById('notesField').value;
+  const res = await fetch('/api/log',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ date:selectedKey, apoquel:draft.apoquel, bath:draft.bath, comment:draft.comment })
+  });
+  if (res.ok){
+    activities[selectedKey] = { apoquel:draft.apoquel, bath:draft.bath, comment:draft.comment };
+    closeDialog();
+    render();
+    renderAnalytics();
+  } else {
+    const e = await res.json().catch(()=>({}));
+    alert(e.error || 'Failed to save');
+  }
+}
+
+// ── Tabs ──
+function showTab(tab){
+  const cal = tab==='calendar';
+  document.getElementById('tabCalendar').classList.toggle('active', cal);
+  document.getElementById('tabAnalytics').classList.toggle('active', !cal);
+  document.getElementById('calendarView').classList.toggle('hidden', !cal);
+  document.getElementById('analyticsView').classList.toggle('hidden', cal);
+}
+
+// ── Analytics ──
+function renderAnalytics(){
+  let totA=0, totB=0;
+  const months = {};
+  Object.entries(activities).forEach(([key,a])=>{
+    if (a.apoquel) totA++;
+    if (a.bath) totB++;
+    const mk = key.slice(0,7); // YYYY-MM
+    if (!months[mk]) months[mk] = {apoquel:0, bath:0};
+    if (a.apoquel) months[mk].apoquel++;
+    if (a.bath) months[mk].bath++;
+  });
+  document.getElementById('totalApoquel').textContent = totA;
+  document.getElementById('totalBaths').textContent = totB;
+
+  const keys = Object.keys(months).sort().reverse();
+  document.getElementById('monthlyBreakdown').innerHTML = keys.length ? keys.map(mk=>{
+    const [y,m]=mk.split('-');
+    return `<div class="month-row">
+      <span class="m-name">${MONTHS[+m-1]} ${y}</span>
+      <span class="m-stats">
+        <span class="m-apoquel">💊 ${months[mk].apoquel}</span>
+        <span class="m-bath">🛁 ${months[mk].bath}</span>
+      </span>
+    </div>`;
+  }).join('') : '<div class="future-msg">No data logged yet.</div>';
+}
+
+function exportCSV(){
+  const rows = [['Date','Apoquel','Bath','Notes']];
+  Object.keys(activities).sort().forEach(key=>{
+    const a = activities[key];
+    rows.push([key, a.apoquel?'Yes':'No', a.bath?'Yes':'No', (a.comment||'').replace(/"/g,'""')]);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `beau-care-${localIsoDate()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+init();
+</script>
+</body>
+</html>
