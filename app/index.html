@@ -192,6 +192,16 @@
     color: var(--card-foreground); font-family: inherit; font-weight: 500; cursor: pointer;
   }
 
+  /* ── About Beau ── */
+  .about-intro { color: var(--muted-foreground); font-size: 0.9rem; margin-bottom: 1.25rem; }
+  .about-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    border-left: 4px solid var(--primary); padding: 1rem 1.15rem; margin-bottom: 0.85rem;
+  }
+  .about-card h4 { font-size: 1.02rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--primary); }
+  .about-card p { font-size: 0.95rem; white-space: pre-wrap; word-break: break-word; }
+  .about-empty { color: var(--muted-foreground); font-size: 0.95rem; padding: 1rem 0; }
+
   /* ── PIN screen ── */
   .pin-screen {
     position: fixed; inset: 0; background: var(--background); display: none;
@@ -228,6 +238,7 @@
   <div class="tabs">
     <button class="tab active" id="tabCalendar" onclick="showTab('calendar')">Calendar</button>
     <button class="tab" id="tabAnalytics" onclick="showTab('analytics')">Analytics</button>
+    <button class="tab" id="tabAbout" onclick="showTab('about')">About Beau</button>
   </div>
 
   <!-- Calendar view -->
@@ -273,6 +284,12 @@
     <div class="section-title">Monthly breakdown</div>
     <div id="monthlyBreakdown"></div>
     <button class="export-btn" onclick="exportCSV()">⬇ Export all data as CSV</button>
+  </div>
+
+  <!-- About Beau view -->
+  <div id="aboutView" class="hidden">
+    <p class="about-intro">Everything a sitter needs to know about Beau while you're away. Edit these notes in the Google Sheet's <strong>About</strong> tab.</p>
+    <div id="aboutSections"></div>
   </div>
 </div>
 
@@ -458,11 +475,32 @@ async function saveDay(){
 
 // ── Tabs ──
 function showTab(tab){
-  const cal = tab==='calendar';
-  document.getElementById('tabCalendar').classList.toggle('active', cal);
-  document.getElementById('tabAnalytics').classList.toggle('active', !cal);
-  document.getElementById('calendarView').classList.toggle('hidden', !cal);
-  document.getElementById('analyticsView').classList.toggle('hidden', cal);
+  document.getElementById('tabCalendar').classList.toggle('active', tab==='calendar');
+  document.getElementById('tabAnalytics').classList.toggle('active', tab==='analytics');
+  document.getElementById('tabAbout').classList.toggle('active', tab==='about');
+  document.getElementById('calendarView').classList.toggle('hidden', tab!=='calendar');
+  document.getElementById('analyticsView').classList.toggle('hidden', tab!=='analytics');
+  document.getElementById('aboutView').classList.toggle('hidden', tab!=='about');
+  if (tab==='about') loadAbout();
+}
+
+// ── About Beau ──
+let aboutLoaded = false;
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function loadAbout(){
+  const box = document.getElementById('aboutSections');
+  if (!aboutLoaded) box.innerHTML = '<div class="about-empty">Loading…</div>';
+  const sections = await fetch('/api/about').then(r=>r.json()).catch(()=>[]);
+  aboutLoaded = true;
+  if (!sections.length){
+    box.innerHTML = '<div class="about-empty">No notes yet. Add rows to the <strong>About</strong> tab in the Google Sheet.</div>';
+    return;
+  }
+  box.innerHTML = sections.map(s=>`
+    <div class="about-card">
+      <h4>${escapeHtml(s.section)}</h4>
+      <p>${escapeHtml(s.content)}</p>
+    </div>`).join('');
 }
 
 // ── Analytics ──

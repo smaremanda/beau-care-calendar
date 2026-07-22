@@ -29,6 +29,7 @@ def login_required(f):
 
 SPREADSHEET_ID = os.environ.get('SHEET_ID', 'REPLACE_WITH_SHEET_ID')
 SHEET_NAME = 'Sheet1'
+ABOUT_TAB = 'About'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # Column indices (0-based)
@@ -120,6 +121,30 @@ def api_activities():
         comment = row[COL_NOTES] if len(row) > COL_NOTES else ''
         activities[date] = {'apoquel': apoquel, 'bath': bath, 'comment': comment}
     return jsonify(activities)
+
+
+@app.route('/api/about')
+@login_required
+def api_about():
+    """Return the About-Beau sections [{section, content}] from the About tab."""
+    service = get_service()
+    try:
+        result = service.spreadsheets().values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=f'{ABOUT_TAB}!A2:B200'
+        ).execute()
+    except Exception:
+        return jsonify([])  # tab may not exist yet
+    rows = result.get('values', [])
+    sections = []
+    for row in rows:
+        if not row or not row[0].strip():
+            continue
+        sections.append({
+            'section': row[0].strip(),
+            'content': (row[1] if len(row) > 1 else '').strip(),
+        })
+    return jsonify(sections)
 
 
 @app.route('/api/log', methods=['POST'])
