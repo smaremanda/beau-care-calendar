@@ -1,5 +1,6 @@
 import os
 import json
+import threading
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, send_from_directory, jsonify, request, session
@@ -39,16 +40,24 @@ COL_BATH = 2
 COL_NOTES = 3
 
 
+# The Sheets client wraps an httplib2 connection, which isn't thread-safe, so
+# cache one client per thread rather than one per process.
+_local = threading.local()
+
+
 def get_service():
-    creds_json = os.environ.get('GOOGLE_CREDENTIALS')
-    if creds_json:
-        info = json.loads(creds_json)
-        creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
-    else:
-        creds = service_account.Credentials.from_service_account_file(
-            'credentials.json', scopes=SCOPES
-        )
-    return build('sheets', 'v4', credentials=creds)
+    service = getattr(_local, 'service', None)
+    if service is None:
+        creds_json = os.environ.get('GOOGLE_CREDENTIALS')
+        if creds_json:
+            info = json.loads(creds_json)
+            creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+        else:
+            creds = service_account.Credentials.from_service_account_file(
+                'credentials.json', scopes=SCOPES
+            )
+        service = _local.service = build('sheets', 'v4', credentials=creds)
+    return service
 
 
 def get_all_rows():
